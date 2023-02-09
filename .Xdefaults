@@ -1,0 +1,9 @@
+XTerm*utf8: always
+XTerm*metaSendsEscape: true
+XTerm*faceName: xft:Source Code Pro:size=12:antialias=true:hinting=true
+XTerm*cursorBlink: true
+XTerm*reverseVideo: true
+XTerm*dynamiccolors: true
+XTerm*VT100*Geometry: 80x50
+XTerm*background: rgb:EB/D9/99
+XTerm*foreground: rgb:2E/2E/2D9
