@@ -1,5 +1,8 @@
 import XMonad
 
+-- Actions
+import XMonad.Actions.Submap
+import XMonad.Actions.Search
 -- Utilities
 import XMonad.Util.EZConfig
 import XMonad.Util.Ungrab
@@ -25,6 +28,10 @@ import XMonad.Layout.Simplest
 import XMonad.Layout.SubLayouts
 import XMonad.Layout.WindowNavigation
 import XMonad.Layout.NoBorders
+-- Prompts
+import XMonad.Prompt.Man
+import XMonad.Prompt.OrgMode
+import XMonad.Prompt.RunOrRaise
 
 -- Variable definitions
 
@@ -79,6 +86,30 @@ myLayoutHook = avoidStruts $ myDefaultLayout
                                            ||| floats
                                            ||| grid
                                            ||| simpleTabbed
+
+myXPConfig :: XPConfig
+myXPConfig = defaultXPConfig { font = "xft:terminus:pixelsize:14"
+                             , height = 35
+
+										   
+keys :: XConfig Layout -> M.Map (KeyMask, KeySym) (X ())
+keys conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
+	[ ((modm, xK_p), visualSubmap . M.fromList $
+      [ ((0, "Man Pages", xK_m),  manPrompt def)
+	  , ((0, "Org Prompt", xK_o), orgPrompt def "TODO" "~/org/inbox.org")
+	  , ((0, "Run", xK_r),        runOrRaisePrompt def)
+	  , ((0, "Search", xK_s),     visualSubmap . M.fromList $
+	                              [ ((0, "Google", xK_g),         promptSearchBrowser myXPConfig myBrowser google)
+	  							  , ((0, "Google Images", xK_i),  promptSearchBrowser myXPConfig myBrowser images)
+	  							  , ((0, "Dictionary", xK_d),     promptSearchBrowser myXPConfig myBrowser dictionary)
+	  							  , ((0, "Thesaurus", xK_t),      promptSearchBrowser myXPConfig myBrowser thesaurus)
+								  , ((0, "YouTube", xK_y),        promptSearchBrowser myXPConfig myBrowser youtube)
+	  							  , ((0, "Wikipedia", xK_w),      promptSearchBrowser myXPConfig myBrowser wikipedia)
+								  , ((0, "Amazon", xK_a),         promptSearchBrowser myXPConfig myBrowser amazon)
+	  							  , ((0, "Google Scholar", xK_s), promptSearchBrowser myXPConfig myBrowser scholar)
+	  							  ])
+	  ])
+    ]
 
 -- colors
 colorBack = "#3D3F42"
