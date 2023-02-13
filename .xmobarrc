@@ -1,20 +1,22 @@
 Config { 
 
    -- appearance
-     font =         "xft:Source Code Pro Semibold:size=9:antialias=true:hinting=true"
-   , additionalFonts = ["xft:FontAwesome:size=12"
-                        , "xft:Source Code Pro:bold:size=11:antialias=true:hinting=true"]
+     font =         "xft:Source Code Pro Semibold:size=12:antialias=true:hinting=true"
+   , additionalFonts = ["xft:FontAwesome:size=12:antialias=true:hinting=true"
+                        , "xft:Source Code Pro:bold:size=14:antialias=true:hinting=true"
+                        , "xft:Symbols Nerd Font:size=26:antialias=true:hinting=true"]
+
    , bgColor =      "#3D3F42"
    -- , fgColor =      "#D3B99E"
    , fgColor =      "#ebd999"
-   , position =     TopSize C 100 30
+   , position =     TopSize C 100 33
    , border =       BottomB
    , borderColor =  "#333334"
 
    -- layout
    , sepChar =  "%"   -- delineator between plugin names and straight text
    , alignSep = "}{"  -- separator between left-right alignment
-   , template = " %StdinReader% }{%KDFW%  %date%  %time%  %tuxicon% %kernel% "
+   , template = " %icon%  %StdinReader% }{%KDFW%  %date%  %time%  "
 
    -- general behavior
    , lowerOnStart =     True    -- send to bottom of window stack on start
@@ -99,10 +101,11 @@ Config {
 
         -- time and date indicator 
         --   (%F = y-m-d date, %a = day of week, %T = h:m:s time)
-        , Run Date           "<fn=1>\xf133</fn> <fc=#2dbc94>%A, %b%e</fc>" "date" 10
+        , Run Date           "<fn=1>\xf133</fn> <fc=#2dbc94>%A, %b %e</fc>" "date" 10
         , Run Date           "<fn=1>\xf017</fn> %R" "time" 10
         , Run Com "echo" ["<fn=1>\xf17c</fn>"] "tuxicon" 36000
         , Run Com "uname" ["-r"] "kernel" 36000
+        , Run Com "echo" ["<fn=3><fc=#eaeb06>\xf325</fc></fn>"] "icon" 36000
 
         -- keyboard layout indicator
         , Run Kbd            [ ("us(dvorak)" , "<fc=#00008B>DV</fc>")
