@@ -1,8 +1,10 @@
 import XMonad
+import XMonad.Prelude
 
 -- Actions
 import XMonad.Actions.Submap
 import XMonad.Actions.Search
+import XMonad.Actions.CycleWS
 -- Utilities
 import XMonad.Util.EZConfig
 import XMonad.Util.Ungrab
@@ -113,8 +115,8 @@ myScratchPads = [ NS "terminal" spawnTerm findTerm manageTerm
                  w = 0.9
                  t = 0.95 -h
                  l = 0.95 -w
-    spawnGuile = myTerminal ++ " -t guile -c 'guix repl'"
-    findGuile = title =? "guile"
+    spawnGuile = myTerminal ++ " -t guile-repl -e guix repl"
+    findGuile = title =? "guile-repl"
     manageGuile = customFloating $ W.RationalRect l t w h
                 where
                   h = 0.9
@@ -124,13 +126,13 @@ myScratchPads = [ NS "terminal" spawnTerm findTerm manageTerm
 
 -- myKeys :: XConfig Layout -> M.Map (KeyMask, KeySym) (X ())
 myKeys =
-    [ ((myModMask .|. shiftMask, xK_Return), spawn myTerminal
-      , (myModMask, xK_s), submap . M.fromList $
+    [ ((myModMask .|. shiftMask, xK_Return), spawn myTerminal)
+      , ((myModMask, xK_s), submap . M.fromList $
       [
-        ((0, xK_t) namedScratchpadAction myScratchPads "terminal")
-        ((0, xK_g) namedScratchpadAction myScratchPads "repl-guile")
-      ]
-      , (myModMask, xK_p), submap . M.fromList $
+        ((0, xK_t), namedScratchpadAction myScratchPads "terminal")
+        , ((0, xK_g), namedScratchpadAction myScratchPads "repl-guile")
+      ])
+      , ((myModMask, xK_p), submap . M.fromList $
       [ ((0, xK_m),  manPrompt myXPConfig)
           , ((0, xK_o),  orgPrompt myXPConfig "TODO" "~/org/inbox.org")
           , ((0, xK_r),  runOrRaisePrompt myXPConfig)
@@ -166,7 +168,7 @@ main = do
   xmonad $ ewmhFullscreen $ ewmh $ xmobarProp $ def
     { modMask     = myModMask
     , layoutHook  = myLayoutHook
-    , manageHook  = manageDocks <+> namedScratchpadManageHook myScratchPads <+> manageHook def
+    , manageHook  = manageDocks <+> manageHook def <+> namedScratchpadManageHook myScratchPads
     , workspaces  = myWorkspaces
     , startupHook = myStartupHook
     , normalBorderColor = colorBack
