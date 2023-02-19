@@ -8,6 +8,7 @@ import XMonad.Util.EZConfig
 import XMonad.Util.Ungrab
 import XMonad.Util.SpawnOnce
 import XMonad.Util.Run
+import XMonad.Util.NamedScratchpad
 -- Hooks
 import XMonad.Hooks.EwmhDesktops
 import XMonad.Hooks.DynamicLog
@@ -35,6 +36,7 @@ import XMonad.Prompt.OrgMode
 import XMonad.Prompt.RunOrRaise
 
 import qualified Data.Map as M
+import qualified XMonad.StackSet as W
 
 -- Variable definitions
 
@@ -98,15 +100,43 @@ myXPConfig = def {font = "xft:terminus:pixelsize:14"
                  , height = 33
                  , position = Top}
 
+myScratchPads :: [NamedScratchpad]
+myScratchPads = [ NS "terminal" spawnTerm findTerm manageTerm
+                , NS "repl-guile" spawnGuile findGuile manageGuile
+                ]
+  where
+    spawnTerm = myTerminal ++ " -t scratchpad"
+    findTerm = title =? "scratchpad"
+    manageTerm = customFloating $ W.RationalRect l t w h
+               where
+                 h = 0.9
+                 w = 0.9
+                 t = 0.95 -h
+                 l = 0.95 -w
+    spawnGuile = myTerminal ++ " -t guile -c 'guix repl'"
+    findGuile = title =? "guile"
+    manageGuile = customFloating $ W.RationalRect l t w h
+                where
+                  h = 0.9
+                  w = 0.9
+                  t = 0.95 -h
+                  l = 0.95 -w
+
 -- myKeys :: XConfig Layout -> M.Map (KeyMask, KeySym) (X ())
 myKeys =
-	[ ((myModMask, xK_p), submap . M.fromList $
+    [ ((myModMask .|. shiftMask, xK_Return), spawn myTerminal
+      , (myModMask, xK_s), submap . M.fromList $
+      [
+        ((0, xK_t) namedScratchpadAction myScratchPads "terminal")
+        ((0, xK_g) namedScratchpadAction myScratchPads "repl-guile")
+      ]
+      , (myModMask, xK_p), submap . M.fromList $
       [ ((0, xK_m),  manPrompt myXPConfig)
-	  , ((0, xK_o),  orgPrompt myXPConfig "TODO" "~/org/inbox.org")
-	  , ((0, xK_r),  runOrRaisePrompt myXPConfig)
-	  , ((0, xK_s),  submap . M.fromList $
-	                           [ ((0, xK_g),  promptSearchBrowser myXPConfig myBrowser google)
-	                           , ((0, xK_i),  promptSearchBrowser myXPConfig myBrowser images)
+          , ((0, xK_o),  orgPrompt myXPConfig "TODO" "~/org/inbox.org")
+          , ((0, xK_r),  runOrRaisePrompt myXPConfig)
+          , ((0, xK_s),  submap . M.fromList $
+                               [ ((0, xK_g),  promptSearchBrowser myXPConfig myBrowser google)
+                               , ((0, xK_i),  promptSearchBrowser myXPConfig myBrowser images)
                                , ((0, xK_d),  promptSearchBrowser myXPConfig myBrowser dictionary)
                                , ((0, xK_t),  promptSearchBrowser myXPConfig myBrowser thesaurus)
                                , ((0, xK_y),  promptSearchBrowser myXPConfig myBrowser youtube)
@@ -116,6 +146,9 @@ myKeys =
                                ])
       ])
     ]
+      where nonNSP          = WSIs (return (\ws -> W.tag ws /= "NSP"))
+            nonEmptyNonNSP  = WSIs (return (\ws -> isJust (W.stack ws) && W.tag ws /= "NSP"))
+
 
 -- colors
 colorBack = "#3D3F42"
@@ -133,7 +166,7 @@ main = do
   xmonad $ ewmhFullscreen $ ewmh $ xmobarProp $ def
     { modMask     = myModMask
     , layoutHook  = myLayoutHook
-    , manageHook  = manageDocks <+> manageHook def
+    , manageHook  = manageDocks <+> namedScratchpadManageHook myScratchPads <+> manageHook def
     , workspaces  = myWorkspaces
     , startupHook = myStartupHook
     , normalBorderColor = colorBack
