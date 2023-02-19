@@ -5,27 +5,31 @@ import XMonad.Prelude
 import XMonad.Actions.Submap
 import XMonad.Actions.Search
 import XMonad.Actions.CycleWS
+
 -- Utilities
 import XMonad.Util.EZConfig
 import XMonad.Util.Ungrab
 import XMonad.Util.SpawnOnce
 import XMonad.Util.Run
 import XMonad.Util.NamedScratchpad
+
 -- Hooks
 import XMonad.Hooks.EwmhDesktops
 import XMonad.Hooks.DynamicLog
 import XMonad.Hooks.StatusBar
 import XMonad.Hooks.StatusBar.PP
 import XMonad.Hooks.ManageDocks
+
 -- Layouts
-import XMonad.Layout.Renamed
 import XMonad.Layout.ResizableTile
+import XMonad.Layout.SimplestFloat
+import XMonad.Layout.TwoPane
+import XMonad.Layout.Tabbed
+
+-- Layout Modifiers
 import XMonad.Layout.LayoutModifier
 import XMonad.Layout.Spacing
-import XMonad.Layout.SimplestFloat
-import XMonad.Layout.GridVariants
-import XMonad.Layout.Tabbed
--- Layout Modifiers
+import XMonad.Layout.Renamed
 import XMonad.Layout.LimitWindows
 import XMonad.Layout.Simplest
 import XMonad.Layout.SubLayouts
@@ -77,25 +81,33 @@ tall = renamed [Replace "tall"]
 monocle = renamed [Replace "monocle"]
           $ mySpacing 2
           $ Full
+		  $ noBorders
 
 floats = renamed [Replace "floats"]
          $ simplestFloat
-grid = renamed [Replace "grid"]
-       $ limitWindows 9
-       $ windowNavigation
-       $ mySpacing 8
-       $ Grid (16/10)
 
--- tabs = renamed [Replace "tabbed"]
-   --       $ Tabbed
+tabbed = renamed [Replace "tabbed"]
+         $ shrinkText
+		 $ myTabConfig
+		 $ simpleTabbed
+
+twopane = renamed [Replace "twopane"]
+          $ mySpacing 3
+		  $ TwoPane (3/100) (1/2)
+		  
+myTabConfig = def { activeColor       = colorFore
+                  , inactiveColor     = colorBack
+				  , activeTextColor   = color05
+				  , inactiveTextColor = color02
+				  }
 
 myLayoutHook = avoidStruts $ myDefaultLayout
   where
     myDefaultLayout = withBorder myBorderWidth tall
-                                           ||| noBorders monocle
-                                           ||| floats
-                                           ||| grid
-                                           ||| simpleTabbed
+                                           ||| monocle
+                                           ||| twopane
+										   ||| tabbed
+										   ||| floats
 
 myXPConfig :: XPConfig
 myXPConfig = def {font = "xft:terminus:pixelsize:14"
@@ -103,26 +115,31 @@ myXPConfig = def {font = "xft:terminus:pixelsize:14"
                  , position = Top}
 
 myScratchPads :: [NamedScratchpad]
-myScratchPads = [ NS "terminal" spawnTerm findTerm manageTerm
-                , NS "repl-guile" spawnGuile findGuile manageGuile
+myScratchPads = [ NS "terminal" spawnTerm findTerm standardManage
+                , NS "repl-guile" spawnGuile findGuile standardManage
+				, NS "repl-haskell" spawnGhci findGhci standardManage
+				, NS "htop" spawnHtop findHtop standardManage
                 ]
   where
-    spawnTerm = myTerminal ++ " -t scratchpad"
+    standardManage = customFloating $ W.RationalRect l t w h
+                   where
+				   h = 0.9
+				   w = 0.9
+				   t = 0.95 -h
+				   l = 0.95 -w
+	
+	spawnTerm = myTerminal ++ " -t scratchpad"
     findTerm = title =? "scratchpad"
-    manageTerm = customFloating $ W.RationalRect l t w h
-               where
-                 h = 0.9
-                 w = 0.9
-                 t = 0.95 -h
-                 l = 0.95 -w
+
     spawnGuile = myTerminal ++ " -t guile-repl -e guix repl"
     findGuile = title =? "guile-repl"
-    manageGuile = customFloating $ W.RationalRect l t w h
-                where
-                  h = 0.9
-                  w = 0.9
-                  t = 0.95 -h
-                  l = 0.95 -w
+
+	spawnGhci = myTerminal ++ " -t haskell-repl -e ghci"
+	findGhci = title =? "haskell-repl"
+	
+	spawnHtop = myTerminal ++ " -t htop -e htop"
+	findHtop = title =? "htop"
+
 
 -- myKeys :: XConfig Layout -> M.Map (KeyMask, KeySym) (X ())
 myKeys =
@@ -131,6 +148,8 @@ myKeys =
       [
         ((0, xK_t), namedScratchpadAction myScratchPads "terminal")
         , ((0, xK_g), namedScratchpadAction myScratchPads "repl-guile")
+		, ((0, xK_h), namedScratchpadAction myScratchPads "repl-haskell")
+		, ((0, xK_p), namedScratchpadAction myScratchPads "htop")
       ])
       , ((myModMask, xK_p), submap . M.fromList $
       [ ((0, xK_m),  manPrompt myXPConfig)
@@ -178,12 +197,13 @@ main = do
       , ppCurrent = xmobarColor color05 "" . wrap
                     "<fn=2>[" "]</fn>"
                    -- ("<box type=Bottom width=2 mb=2 color=" ++ color05 ++ ">") "</box>"
-      , ppHidden = xmobarColor color03 "" . wrap
+      , ppHidden = xmobarColor color03 "" . filterNSP . wrap 
                    ("<box type=Bottom width=1 mb=1 color=" ++ color03 ++ ">") "</box>"
-      , ppHiddenNoWindows = xmobarColor color02 ""
+      , ppHiddenNoWindows = xmobarColor color02 "" . filterNSP
       , ppLayout = xmobarColor color05 ""
       , ppTitle = xmobarColor colorFore "" . shorten 60
       , ppSep = "<fc=" ++ colorFore ++ "> | </fc>"
       , ppOrder = \(ws:l:t:ex) -> [ws,l]++ex++[t]
-      }
+      } where
+	      filterNSP ws = if ws /= "NSP" then ws else ""
     } `additionalKeys` myKeys
