@@ -35,6 +35,8 @@ import XMonad.Layout.Simplest
 import XMonad.Layout.SubLayouts
 import XMonad.Layout.WindowNavigation
 import XMonad.Layout.NoBorders
+import XMonad.Layout.SimpleDecoration (shrinkText)
+
 -- Prompts
 import XMonad.Prompt
 import XMonad.Prompt.Man
@@ -73,6 +75,12 @@ myStartupHook = do
 mySpacing :: Integer -> l a -> XMonad.Layout.LayoutModifier.ModifiedLayout Spacing l a
 mySpacing i = spacingRaw False (Border i i i i) True (Border i i i i) True
 
+myTabConfig = def { activeColor       = colorFore
+                  , inactiveColor     = colorBack
+                  , activeTextColor   = color05
+                  , inactiveTextColor = color02
+                  }
+
 -- layouts
 tall = renamed [Replace "tall"]
        $ mySpacing 8
@@ -80,34 +88,23 @@ tall = renamed [Replace "tall"]
 
 monocle = renamed [Replace "monocle"]
           $ mySpacing 2
+          $ noBorders
           $ Full
-		  $ noBorders
 
 floats = renamed [Replace "floats"]
          $ simplestFloat
 
-tabbed = renamed [Replace "tabbed"]
-         $ shrinkText
-		 $ myTabConfig
-		 $ simpleTabbed
-
-twopane = renamed [Replace "twopane"]
+panes  = renamed [Replace "twoPanes"]
           $ mySpacing 3
-		  $ TwoPane (3/100) (1/2)
-		  
-myTabConfig = def { activeColor       = colorFore
-                  , inactiveColor     = colorBack
-				  , activeTextColor   = color05
-				  , inactiveTextColor = color02
-				  }
+          $ TwoPane (3/100) (1/2)
 
 myLayoutHook = avoidStruts $ myDefaultLayout
   where
     myDefaultLayout = withBorder myBorderWidth tall
                                            ||| monocle
-                                           ||| twopane
-										   ||| tabbed
-										   ||| floats
+                                           ||| panes
+                                           ||| floats
+                                           ||| noBorders (tabbed shrinkText myTabConfig)
 
 myXPConfig :: XPConfig
 myXPConfig = def {font = "xft:terminus:pixelsize:14"
@@ -117,28 +114,24 @@ myXPConfig = def {font = "xft:terminus:pixelsize:14"
 myScratchPads :: [NamedScratchpad]
 myScratchPads = [ NS "terminal" spawnTerm findTerm standardManage
                 , NS "repl-guile" spawnGuile findGuile standardManage
-				, NS "repl-haskell" spawnGhci findGhci standardManage
-				, NS "htop" spawnHtop findHtop standardManage
+                , NS "repl-haskell" spawnGhci findGhci standardManage
+                , NS "htop" spawnHtop findHtop standardManage
                 ]
   where
     standardManage = customFloating $ W.RationalRect l t w h
                    where
-				   h = 0.9
-				   w = 0.9
-				   t = 0.95 -h
-				   l = 0.95 -w
-	
-	spawnTerm = myTerminal ++ " -t scratchpad"
+                     h = 0.9
+                     w = 0.9
+                     t = 0.95 -h
+                     l = 0.95 -w
+    spawnTerm = myTerminal ++ " -t scratchpad"
     findTerm = title =? "scratchpad"
-
     spawnGuile = myTerminal ++ " -t guile-repl -e guix repl"
     findGuile = title =? "guile-repl"
-
-	spawnGhci = myTerminal ++ " -t haskell-repl -e ghci"
-	findGhci = title =? "haskell-repl"
-	
-	spawnHtop = myTerminal ++ " -t htop -e htop"
-	findHtop = title =? "htop"
+    spawnGhci = myTerminal ++ " -t haskell-repl -e ghci"
+    findGhci = title =? "haskell-repl"
+    spawnHtop = myTerminal ++ " -t htop -e htop"
+    findHtop = title =? "htop"
 
 
 -- myKeys :: XConfig Layout -> M.Map (KeyMask, KeySym) (X ())
@@ -148,8 +141,8 @@ myKeys =
       [
         ((0, xK_t), namedScratchpadAction myScratchPads "terminal")
         , ((0, xK_g), namedScratchpadAction myScratchPads "repl-guile")
-		, ((0, xK_h), namedScratchpadAction myScratchPads "repl-haskell")
-		, ((0, xK_p), namedScratchpadAction myScratchPads "htop")
+        , ((0, xK_h), namedScratchpadAction myScratchPads "repl-haskell")
+        , ((0, xK_p), namedScratchpadAction myScratchPads "htop")
       ])
       , ((myModMask, xK_p), submap . M.fromList $
       [ ((0, xK_m),  manPrompt myXPConfig)
@@ -170,6 +163,7 @@ myKeys =
       where nonNSP          = WSIs (return (\ws -> W.tag ws /= "NSP"))
             nonEmptyNonNSP  = WSIs (return (\ws -> isJust (W.stack ws) && W.tag ws /= "NSP"))
 
+filterNSP ws = if ws /= "NSP" then ws else ""
 
 -- colors
 colorBack = "#3D3F42"
@@ -196,14 +190,11 @@ main = do
       { ppOutput = hPutStrLn xmproc
       , ppCurrent = xmobarColor color05 "" . wrap
                     "<fn=2>[" "]</fn>"
-                   -- ("<box type=Bottom width=2 mb=2 color=" ++ color05 ++ ">") "</box>"
-      , ppHidden = xmobarColor color03 "" . filterNSP . wrap 
+      , ppHidden = xmobarColor color03 "" . wrap
                    ("<box type=Bottom width=1 mb=1 color=" ++ color03 ++ ">") "</box>"
       , ppHiddenNoWindows = xmobarColor color02 "" . filterNSP
       , ppLayout = xmobarColor color05 ""
       , ppTitle = xmobarColor colorFore "" . shorten 60
       , ppSep = "<fc=" ++ colorFore ++ "> | </fc>"
-      , ppOrder = \(ws:l:t:ex) -> [ws,l]++ex++[t]
-      } where
-	      filterNSP ws = if ws /= "NSP" then ws else ""
-    } `additionalKeys` myKeys
+      }
+     } `additionalKeys` myKeys
